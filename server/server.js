@@ -1,30 +1,47 @@
 // File Location: server/server.js
 
 const express = require('express');
+const mongoose = require('mongoose'); // <--- ADDED THIS
 const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');
-const cookieParser = require('cookie-parser'); // <-- IMPORTED
-
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 const app = express();
-
 app.use(helmet());
 
-// --- START: CRITICAL SECURITY FIX for cookies ---
-// This configuration is essential for allowing the frontend and backend to exchange cookies.
-const corsOptions = {
-    // This MUST exactly match the URL of your Vite development server. No trailing slash.
-    origin: 'http://localhost:5173', 
-    // This allows the browser to send the secure httpOnly cookie with requests.
-    credentials: true, 
-};
-app.use(cors(corsOptions)); // <-- APPLIED CORS options
-// --- END: CRITICAL SECURITY FIX ---
+// --- 1. FIXED CORS FOR CLOUD DEPLOYMENT ---
+const allowedOrigins = [
+  'http://localhost:5173',           // Your local frontend
+  'https://my-frontend.vercel.app',  // <--- YOU WILL REPLACE THIS LATER WITH YOUR VERCEL URL
+  undefined                          // Allows Postman/Backend testing
+];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        // If the origin is in our allowed list, let it pass
+        // OR if the origin ends with .vercel.app (Dynamic check)
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true, // Essential for your cookies
+}));
 
 app.use(express.json());
-app.use(cookieParser()); // <-- APPLIED: This middleware must be used to parse cookies
+app.use(cookieParser());
+
+// --- 2. ADDED MONGODB CONNECTION HERE ---
+// This was missing in your code!
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('✅ Connected to MongoDB Atlas'))
+  .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -43,15 +60,18 @@ const prescriptionsRoutes = require('./routes/prescriptions');
 const notificationsRoutes = require('./routes/notifications');
 const notificationService = require('./services/notificationService');
 const reportsRoutes = require('./routes/reports');
-notificationService.generateAlerts();
 
-// 2. Schedule to run every hour (3600000 ms)
-// This keeps the system updated without manual intervention
-setInterval(() => {
+// Services
+try {
     notificationService.generateAlerts();
-}, 3600000);
+    setInterval(() => {
+        notificationService.generateAlerts();
+    }, 3600000);
+} catch (error) {
+    console.log("Notification service warning:", error.message);
+}
 
-// Define API Routes
+// Routes Middleware
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/products', productsRoutes);
@@ -66,6 +86,10 @@ app.use('/api/prescriptions', prescriptionsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/reports', reportsRoutes);
 
-// Define Port & Start Server
+// Root Route (Important for Glitch health check)
+app.get('/', (req, res) => {
+    res.send('Backend is running successfully!');
+});
+
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Backend server started on port ${PORT}`));
