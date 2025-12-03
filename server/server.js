@@ -38,7 +38,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // --- 2. ADDED MONGODB CONNECTION HERE ---
-// This was missing in your code!
+console.log("Debug Mongo URI:", process.env.MONGO_URI); 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB Atlas'))
   .catch((err) => console.error('❌ MongoDB Connection Error:', err));
