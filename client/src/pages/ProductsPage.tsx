@@ -7,8 +7,8 @@ import api from '../services/api';
 import { Product } from '../types';
 import { LuSearch, LuPencil, LuTrash2, LuPlus } from 'react-icons/lu';
 import AddProductModal from '../components/products/addProductModal';
-import EditProductModal from '../components/products/EditProductModal';
-import ConfirmDeleteModal from '../components/common/ConfirmDeleteModal';
+import EditProductModal from '../components/products/EditProductModal'; // No .tsx
+import ConfirmDeleteModal from '../components/common/ConfirmDeleteModal'; // No .tsx
 import toast from 'react-hot-toast';
 
 const ProductsPage = () => {
