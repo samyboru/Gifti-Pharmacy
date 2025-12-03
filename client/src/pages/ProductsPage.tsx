@@ -1,6 +1,6 @@
 // Renamed file fix
 // File Location: client/src/pages/ProductsPage.tsx
-
+// Update for Vercel
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next'; // <-- Import hook
